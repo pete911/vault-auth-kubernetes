@@ -12,3 +12,4 @@ metadata:
 data:
   VAK_VAULT_HOST: "{{ .Values.vaultHost }}"
   VAK_VAULT_MOUNT: "{{ .Values.vaultMount }}"
+  VAK_VAULT_KUBE_HOST: "{{ .Values.vaultKubeHost }}"

@@ -64,8 +64,19 @@ path "auth/kubernetes/+/+/role/+" {
 It is also expected to have [vault approle](https://www.vaultproject.io/api-docs/auth/approle) auth method enabled and
 approle created with the above policy, so we can get
 [role-id](https://www.vaultproject.io/api-docs/auth/approle#read-approle-role-id) and generate
-[role-secret-id](https://www.vaultproject.io/api-docs/auth/approle#generate-new-secret-id) (arguments required to run
-`vault-auth-kubernetes`)
+[role-secret-id](https://www.vaultproject.io/api-docs/auth/approle#generate-new-secret-id). It is expected to have
+secret with the role id and secret id named `vault-auth-kubernetes` in the release namespace:
+```yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-auth-kubernetes
+  namespace: <release-namespace>
+data:
+  VAK_VAULT_ROLE_ID: <base64-encoded-role-id>
+  VAK_VAULT_SECRET_ID: <base64-encoded-secret-id>
+```
 
 ## design
 
@@ -105,8 +116,9 @@ approle created with the above policy, so we can get
 
 ## build and run
 
-It is recommended to use [helm chart](charts/vault-auth-kubernetes), but for testing purposes, project can be run
-locally - `make build` and:
+It is recommended to use [helm chart](charts/vault-auth-kubernetes), that uses released image from
+[dockerhub](https://hub.docker.com/repository/docker/pete911/vault-auth-kubernetes), but for testing purposes, project
+can be run locally - `make build` and:
 ```shell script
 ./vault-auth-kubernetes \
 --account-name <aws-account> \
