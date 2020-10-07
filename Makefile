@@ -1,6 +1,8 @@
 #!make
 SHELL := /bin/bash
 .SHELLFLAGS := -ec
+IMAGE := pete911/vault-auth-kubernetes
+VERSION ?= dev
 
 VERSION ?= dev
 
@@ -26,4 +28,10 @@ e2e-test:
 	$(info *** [end to end tests] ***)
 	./e2e/e2e
 
-# build image in travis and push to dockerhub
+image:
+	docker build -t ${IMAGE}:${VERSION} .
+	docker tag ${IMAGE}:${VERSION} ${IMAGE}:latest
+
+push-image:
+	docker push ${IMAGE}:${VERSION}
+	docker push ${IMAGE}:latest

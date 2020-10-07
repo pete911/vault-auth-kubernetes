@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/pete911/vault-auth-kubernetes.svg?branch=master)](https://travis-ci.com/pete911/vault-auth-kubernetes)
+
 # vault-auth-kubernetes
 
 Project enables [vault kubernetes auth method](https://www.vaultproject.io/api/auth/kubernetes) at
