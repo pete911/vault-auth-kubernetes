@@ -1,0 +1,10 @@
+# vault-auth-kubernetes image, e.g. pete911/vault-auth-kubernetes:0.1.0
+image: <CHANGEME>
+
+# vault config
+vaultHost: <CHANGEME>
+vaultMount: <CHANGEME>
+
+# vault is expecting secret (named: .Release.Name) with following fields
+#VAK_VAULT_ROLE_ID
+#VAK_VAULT_SECRET_ID

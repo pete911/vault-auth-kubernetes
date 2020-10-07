@@ -1,0 +1,15 @@
+#!/bin/sh
+
+echo "--- [start k8s integration tests] ---"
+echo " - start minikube -"
+minikube start
+
+echo " - run tests -"
+if [ $(kubectl config current-context) != "minikube" ]
+then
+  echo "kubectl context is not set to minikube"
+  exit 1
+fi
+
+KUBECONFIG="$HOME/.kube/config" go test -v ./integration -tags k8s
+echo "--- [end k8s integration tests] ---"

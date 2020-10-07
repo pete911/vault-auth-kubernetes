@@ -1,0 +1,3 @@
+image: vault:1.5.4
+nodePort: 30200
+devRootTokenId: dev-root-token

@@ -1,0 +1,82 @@
+#!/bin/sh
+
+# make sure paths don't break when script is running from within Makefile
+SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+
+echo "--- [start k8s end to end tests] ---"
+echo " --- start minikube ---"
+minikube start
+
+if [ $(kubectl config current-context) != "minikube" ]
+then
+  echo "kubectl context is not set to minikube"
+  exit 1
+fi
+
+VAK_VAULT_NODEPORT=30200
+VAK_VAULT_TOKEN="dev-root-token"
+VAK_VAULT_HOST="http://$(minikube ip):$VAK_VAULT_NODEPORT"
+VAK_VAULT_MOUNT="test-account/test-cluster"
+
+# point shell to minikube's docker-daemon and build images
+echo ""
+echo " --- build images ---"
+eval $(minikube -p minikube docker-env)
+docker build -t vault-auth-kubernetes:test "$SCRIPTPATH"/..
+
+# create namespace and install vault
+echo ""
+echo " --- install vault ---"
+kubectl create namespace vault-auth
+helm install vault "$SCRIPTPATH"/charts/vault \
+  --namespace vault-auth \
+  --set devRootTokenId=$VAK_VAULT_TOKEN \
+  --set nodePort=$VAK_VAULT_NODEPORT \
+  --wait
+
+# setup vault, and set VAK_ROLE_ID and VAK_ROLE_SECRET_ID env. vars
+echo ""
+echo " --- mount and setup vault auth approle ---"
+eval "$(VAK_VAULT_HOST="$VAK_VAULT_HOST" VAK_VAULT_TOKEN="$VAK_VAULT_TOKEN" "$SCRIPTPATH"/../integration/vault-setup)"
+
+# setup config, secret and install vault-auth-kubernetes
+echo ""
+echo " --- install vault-auth-kubernetes config ---"
+helm install vault-auth-kubernetes-config "$SCRIPTPATH"/charts/config \
+  --namespace vault-auth \
+  --set vaultRoleId=$(echo "$VAK_VAULT_ROLE_ID" | base64) \
+  --set vaultSecretId=$(echo "$VAK_VAULT_SECRET_ID" | base64) \
+  --wait
+echo ""
+echo " --- install vault-auth-kubernetes ---"
+helm install vault-auth-kubernetes "$SCRIPTPATH"/../charts/vault-auth-kubernetes \
+  --namespace vault-auth \
+  --set image=vault-auth-kubernetes:test \
+  --set vaultHost=http://vault \
+  --set vaultMount="$VAK_VAULT_MOUNT" \
+  --wait
+
+# login to vault using servervice account
+echo ""
+echo " --- run tests ---"
+TEST_RESULT=0
+TEST_NAMESPACE="default"
+TEST_TOKEN=$(kubectl get serviceaccount -n "$TEST_NAMESPACE" vault-agent-injector -o jsonpath='{.secrets[0].name}' | xargs kubectl get secret -n "$TEST_NAMESPACE" -o jsonpath='{.data.token}' | base64 --decode)
+TEST_RESPONSE=$(curl -s -X POST --data "{\"jwt\": \"$TEST_TOKEN\", \"role\": \"$TEST_NAMESPACE\"}" "$VAK_VAULT_HOST"/v1/auth/kubernetes/"$VAK_VAULT_MOUNT"/login)
+
+echo "$TEST_RESPONSE" | jq .
+TEST_RESPONSE_TOKEN=$(echo "$TEST_RESPONSE" | jq .auth.client_token)
+
+if [ -z "$TEST_RESPONSE_TOKEN" ]
+then
+  TEST_RESULT=1
+  echo "token is not set in the response"
+fi
+
+# clean up
+helm delete -n vault-auth vault
+helm delete -n vault-auth vault-auth-kubernetes
+helm delete -n vault-auth vault-auth-kubernetes-config
+kubectl delete namespace vault-auth
+echo "--- [end k8s end to end tests] ---"
+exit "$TEST_RESULT"

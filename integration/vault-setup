@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# script prints app role credentials:
+#   export VAK_VAULT_ROLE_ID=...
+#   export VAK_VAULT_SECRET_ID=...
+# these can then be set:
+#   eval "$(VAK_VAULT_HOST="http://localhost:8200" VAK_VAULT_TOKEN="dev-root-token" vault-setup)"
+
+VAK_VAULT_HOST=${VAK_VAULT_HOST:="http://localhost:8200"}
+VAK_VAULT_TOKEN=${VAK_VAULT_TOKEN:="dev-root-token"}
+
+# create vault policy
+# https://learn.hashicorp.com/vault/identity-access-management/iam-policies#policy-requirements
+policy=$(cat <<-END
+  path \"sys/auth\" {
+    capabilities = [\"list\", \"read\"]
+  }
+  path \"sys/auth/kubernetes/+/+\" {
+    capabilities = [\"list\", \"read\", \"create\", \"update\", \"delete\", \"sudo\"]
+  }
+  path \"auth/kubernetes/+/+/config\" {
+    capabilities = [\"list\", \"read\", \"create\", \"update\", \"sudo\"]
+  }
+  path \"auth/kubernetes/+/+/role/+\" {
+    capabilities = [\"list\", \"read\", \"create\", \"update\", \"delete\"]
+  }
+END
+)
+policy=$(echo "$policy" | tr -s "\n" " ")
+curl -s -X PUT --data "{\"policy\": \"$policy\"}" -H "X-Vault-Token: $VAK_VAULT_TOKEN" "$VAK_VAULT_HOST"/v1/sys/policy/vault-auth-kubernetes
+
+# mount auth approle and configure it
+curl -s -X POST --data '{"type": "approle"}' -H "X-Vault-Token: $VAK_VAULT_TOKEN" "$VAK_VAULT_HOST"/v1/sys/auth/approle
+curl -s -X POST --data '{"default_lease_ttl":1800, "max_lease_ttl":3600}' -H "X-Vault-Token: $VAK_VAULT_TOKEN" "$VAK_VAULT_HOST"/v1/sys/auth/approle/tune
+
+# create vault-auth-kubernetes approle
+curl -s -X POST --data '{"token_policies": ["vault-auth-kubernetes"]}' -H "X-Vault-Token: $VAK_VAULT_TOKEN" "$VAK_VAULT_HOST"/v1/auth/approle/role/vault-auth-kubernetes
+
+# retrieve role id and secret id
+VAK_VAULT_ROLE_ID=$(curl -s -H "X-Vault-Token: $VAK_VAULT_TOKEN" "$VAK_VAULT_HOST"/v1/auth/approle/role/vault-auth-kubernetes/role-id | jq .data.role_id | tr -d '"')
+VAK_VAULT_SECRET_ID=$(curl -s -X POST -H "X-Vault-Token: $VAK_VAULT_TOKEN" "$VAK_VAULT_HOST"/v1/auth/approle/role/vault-auth-kubernetes/secret-id | jq .data.secret_id | tr -d '"')
+echo "export VAK_VAULT_ROLE_ID=$VAK_VAULT_ROLE_ID"
+echo "export VAK_VAULT_SECRET_ID=$VAK_VAULT_SECRET_ID"

@@ -1,0 +1,10 @@
+apiVersion: v2
+home: https://github.com/pete911/vault-auth-kubernetes
+version: 0.1.0
+name: vault-auth-kubernetes
+description: Vault kubernetes auth method manager
+sources:
+  - https://github.com/pete911/vault-auth-kubernetes
+maintainers:
+  - name: peter reisinger
+    email: p.reisinger@gmail.com
