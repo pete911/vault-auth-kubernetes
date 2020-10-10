@@ -121,9 +121,8 @@ It is recommended to use [helm chart](charts/vault-auth-kubernetes), that uses r
 can be run locally - `make build` and:
 ```shell script
 ./vault-auth-kubernetes \
---account-name <aws-account> \
---cluster-name <cluster> \
 --vault-host <host> \
+--vault-mount <vault-mount>\
 --vault-role-id <role-id> \
 --vault-secret-id <secret-id>
 ```
