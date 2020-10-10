@@ -3,7 +3,8 @@
 # vault-auth-kubernetes
 
 Project enables [vault kubernetes auth method](https://www.vaultproject.io/api/auth/kubernetes) at
-`auth/kubernetes/<account>/<cluster>` location in vault and creates
+`auth/kubernetes/<mount/path>` location in vault. Mount path can be `<environmnet>/<cluster>` 
+e,g, `staging/backend` or just `<cluster>` (update vault role accordingly in [requirements section](#requirements)).
 [vault roles](https://www.vaultproject.io/api/auth/kubernetes#create-role) per namespace, with policies configured in
 configmap `vault-auth-roles` in `vault-auth` namespace:
 ```yaml
