@@ -19,7 +19,7 @@ test: helm-test
 
 build: test
 	$(info *** [go build] ***)
-	go build -mod vendor
+	go build
 .PHONY:build
 
 integration-test:
