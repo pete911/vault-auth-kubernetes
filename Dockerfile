@@ -1,4 +1,4 @@
-FROM golang:1.17.2-alpine AS build
+FROM golang:1.17.3-alpine AS build
 RUN apk add --no-cache gcc libc-dev
 WORKDIR /go/src/app
 
