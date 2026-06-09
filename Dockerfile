@@ -7,7 +7,7 @@ RUN go test  ./...
 RUN go build -mod vendor -o /bin/vault-auth-kubernetes
 
 
-FROM alpine:3.23.4
+FROM alpine:3.24.0
 MAINTAINER Peter Reisinger <p.reisinger@gmail.com>
 RUN apk add --no-cache ca-certificates
 
